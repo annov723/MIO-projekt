@@ -143,8 +143,12 @@ def create_wine_fuzzy_system(params=None):
     rule5 = ctrl.Rule(color_intensity['medium'] & flavanoids['low'], wine_class['class_2'])
     rule6 = ctrl.Rule(alcohol['high'] & color_intensity['low'], wine_class['class_1'])
     rule7 = ctrl.Rule(alcohol['low'] & color_intensity['high'], wine_class['class_3'])
+    rule8 = ctrl.Rule(alcohol['high'] & flavanoids['medium'] & color_intensity['low'], wine_class['class_1'])
+    rule9 = ctrl.Rule(alcohol['medium'] & malic_acid['high'] & flavanoids['low'], wine_class['class_3'])
+    rule10 = ctrl.Rule(flavanoids['high'] & color_intensity['medium'] & malic_acid['low'], wine_class['class_1'])
+    rule11 = ctrl.Rule(alcohol['low'] & malic_acid['medium'] & color_intensity['medium'], wine_class['class_2'])
 
-    wine_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7])
+    wine_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11])
     return ctrl.ControlSystemSimulation(wine_ctrl)
 
 def predict_for_wine(fuzzy_system, X_data):
@@ -320,7 +324,7 @@ def iris_model(X_iris, y_iris):
 def wine_model(X_wine, y_wine):
     # Trenowanie i testowanie WINE
     X_train, X_test, y_train, y_test = train_test_split(
-        X_wine, y_wine, test_size=0.2, random_state=42, stratify=y_wine
+        X_wine, y_wine, test_size=0.3, random_state=42, stratify=y_wine
     )
     print("\n\n\nPodział danych WINE:")
     print(f"Training: {X_train.shape[0]}")
