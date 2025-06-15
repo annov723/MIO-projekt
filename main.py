@@ -1,8 +1,13 @@
 ﻿import numpy as np
 import pandas as pd
+from mealpy import FloatVar
+from mealpy.swarm_based.GWO import OriginalGWO
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
+
 
 
 def remove_outliers_turkey(X, y):
@@ -16,7 +21,7 @@ def remove_outliers_turkey(X, y):
     non_outlier_mask = np.all(mask, axis=1)
     return X[non_outlier_mask], y[non_outlier_mask]
 
-def create_iris_fuzzy_system():
+def create_iris_fuzzy_system(params=None):
     sepal_length = ctrl.Antecedent(np.arange(4.0, 8.5, 0.01), 'sepal_length')
     sepal_width = ctrl.Antecedent(np.arange(2.0, 5.0, 0.01), 'sepal_width')
     petal_length = ctrl.Antecedent(np.arange(1.0, 7.5, 0.01), 'petal_length')
@@ -24,50 +29,100 @@ def create_iris_fuzzy_system():
 
     iris_class = ctrl.Consequent(np.arange(0, 3, 1), 'iris_class')
 
-    sepal_length['short'] = fuzz.trapmf(sepal_length.universe, [4.0, 4.0, 5.0, 5.5])
-    sepal_length['medium'] = fuzz.trimf(sepal_length.universe, [5.0, 5.8, 6.5])
-    sepal_length['long'] = fuzz.trapmf(sepal_length.universe, [6.0, 6.5, 8.0, 8.5])
-    sepal_width['narrow'] = fuzz.trapmf(sepal_width.universe, [2.0, 2.0, 2.8, 3.0])
-    sepal_width['medium'] = fuzz.trimf(sepal_width.universe, [2.7, 3.2, 3.7])
-    sepal_width['wide'] = fuzz.trapmf(sepal_width.universe, [3.5, 3.8, 5.0, 5.0])
-    petal_length['short'] = fuzz.trapmf(petal_length.universe, [1.0, 1.0, 1.8, 2.5])
-    petal_length['medium'] = fuzz.trimf(petal_length.universe, [2.5, 4.5, 5.0])
-    petal_length['long'] = fuzz.trapmf(petal_length.universe, [4.8, 5.5, 7.0, 7.5])
-    petal_width['thin'] = fuzz.trapmf(petal_width.universe, [0.0, 0.0, 0.3, 0.6])
-    petal_width['medium'] = fuzz.trimf(petal_width.universe, [0.5, 1.2, 1.8])
-    petal_width['thick'] = fuzz.trapmf(petal_width.universe, [1.5, 2.0, 2.6, 2.6])
+    if params is not None:
+        p_sl = np.sort(params[:11])
+        p_sw = np.sort(params[11:22])
+        p_pl = np.sort(params[22:33])
+        p_pw = np.sort(params[33:44])
+
+        sepal_length['short'] = fuzz.trapmf(sepal_length.universe, [p_sl[0], p_sl[1], p_sl[2], p_sl[3]])
+        sepal_length['medium'] = fuzz.trimf(sepal_length.universe, [p_sl[4], p_sl[5], p_sl[6]])
+        sepal_length['long'] = fuzz.trapmf(sepal_length.universe, [p_sl[7], p_sl[8], p_sl[9], p_sl[10]])
+
+        sepal_width['narrow'] = fuzz.trapmf(sepal_width.universe, [p_sw[0], p_sw[1], p_sw[2], p_sw[3]])
+        sepal_width['medium'] = fuzz.trimf(sepal_width.universe, [p_sw[4], p_sw[5], p_sw[6]])
+        sepal_width['wide'] = fuzz.trapmf(sepal_width.universe, [p_sw[7], p_sw[8], p_sw[9], p_sw[10]])
+
+        petal_length['short'] = fuzz.trapmf(petal_length.universe, [p_pl[0], p_pl[1], p_pl[2], p_pl[3]])
+        petal_length['medium'] = fuzz.trimf(petal_length.universe, [p_pl[4], p_pl[5], p_pl[6]])
+        petal_length['long'] = fuzz.trapmf(petal_length.universe, [p_pl[7], p_pl[8], p_pl[9], p_pl[10]])
+
+        petal_width['thin'] = fuzz.trapmf(petal_width.universe, [p_pw[0], p_pw[1], p_pw[2], p_pw[3]])
+        petal_width['medium'] = fuzz.trimf(petal_width.universe, [p_pw[4], p_pw[5], p_pw[6]])
+        petal_width['thick'] = fuzz.trapmf(petal_width.universe, [p_pw[7], p_pw[8], p_pw[9], p_pw[10]])
+    else:
+        sepal_length['short'] = fuzz.trapmf(sepal_length.universe, [4.0, 4.0, 5.0, 5.5])
+        sepal_length['medium'] = fuzz.trimf(sepal_length.universe, [5.0, 5.8, 6.5])
+        sepal_length['long'] = fuzz.trapmf(sepal_length.universe, [6.0, 6.5, 8.0, 8.5])
+        sepal_width['narrow'] = fuzz.trapmf(sepal_width.universe, [2.0, 2.0, 2.8, 3.0])
+        sepal_width['medium'] = fuzz.trimf(sepal_width.universe, [2.7, 3.2, 3.7])
+        sepal_width['wide'] = fuzz.trapmf(sepal_width.universe, [3.5, 3.8, 5.0, 5.0])
+        petal_length['short'] = fuzz.trapmf(petal_length.universe, [1.0, 1.0, 1.8, 2.5])
+        petal_length['medium'] = fuzz.trimf(petal_length.universe, [2.5, 4.5, 5.0])
+        petal_length['long'] = fuzz.trapmf(petal_length.universe, [4.8, 5.5, 7.0, 7.5])
+        petal_width['thin'] = fuzz.trapmf(petal_width.universe, [0.0, 0.0, 0.3, 0.6])
+        petal_width['medium'] = fuzz.trimf(petal_width.universe, [0.5, 1.2, 1.8])
+        petal_width['thick'] = fuzz.trapmf(petal_width.universe, [1.5, 2.0, 2.6, 2.6])
+
     iris_class['setosa'] = fuzz.trimf(iris_class.universe, [0, 0, 1])
     iris_class['versicolor'] = fuzz.trimf(iris_class.universe, [0, 1, 2])
     iris_class['virginica'] = fuzz.trimf(iris_class.universe, [1, 2, 2])
 
-    rule1 = ctrl.Rule(petal_length['short'] & petal_width['thin'], iris_class['setosa'])
+    rule1 = ctrl.Rule(petal_length['short'] | petal_width['thin'], iris_class['setosa'])
     rule2 = ctrl.Rule(petal_length['medium'] & petal_width['medium'], iris_class['versicolor'])
     rule3 = ctrl.Rule(petal_length['long'] & petal_width['thick'], iris_class['virginica'])
-
-    petal_length.view()
-    petal_width.view()
-    iris_class.view()
 
     iris_ctrl = ctrl.ControlSystem([rule1, rule2, rule3])
     return ctrl.ControlSystemSimulation(iris_ctrl)
 
+def predict_for_iris(fuzzy_system, X_data):
+    predictions = []
+    for sample in X_data:
+        try:
+            fuzzy_system.input['sepal_length'] = sample[0]
+            fuzzy_system.input['sepal_width'] = sample[1]
+            fuzzy_system.input['petal_length'] = sample[2]
+            fuzzy_system.input['petal_width'] = sample[3]
+            fuzzy_system.compute()
+            predicted_class = np.round(fuzzy_system.output['iris_class'])
+            predictions.append(predicted_class)
+        except Exception as e:
+            predictions.append(1)
+    return np.array(predictions)
 
-def create_wine_fuzzy_system():
+def create_wine_fuzzy_system(params=None):
     alcohol = ctrl.Antecedent(np.arange(11, 16, 0.1), 'alcohol')
     malicacid = ctrl.Antecedent(np.arange(0, 6, 0.1), 'malicacid')
     color_intensity = ctrl.Antecedent(np.arange(0, 15, 0.1), 'color_intensity')
 
     wine_class = ctrl.Consequent(np.arange(1, 4, 1), 'wine_class')
 
-    alcohol['low'] = fuzz.trimf(alcohol.universe, [11, 11, 12.5])
-    alcohol['medium'] = fuzz.trimf(alcohol.universe, [12, 13.5, 15])
-    alcohol['high'] = fuzz.trimf(alcohol.universe, [13.5, 15, 15])
-    malicacid['low'] = fuzz.trimf(malicacid.universe, [0, 0, 2])
-    malicacid['medium'] = fuzz.trimf(malicacid.universe, [1, 2.5, 4])
-    malicacid['high'] = fuzz.trimf(malicacid.universe, [3, 5, 5])
-    color_intensity['low'] = fuzz.trimf(color_intensity.universe, [0, 0, 5])
-    color_intensity['medium'] = fuzz.trimf(color_intensity.universe, [4, 7, 10])
-    color_intensity['high'] = fuzz.trimf(color_intensity.universe, [8, 13, 15])
+    if params is not None:
+        p_al = np.sort(params[:9])
+        p_ma = np.sort(params[9:18])
+        p_ci = np.sort(params[18:27])
+
+        alcohol['low'] = fuzz.trimf(alcohol.universe, [p_al[0], p_al[1], p_al[2]])
+        alcohol['medium'] = fuzz.trimf(alcohol.universe, [p_al[3], p_al[4], p_al[5]])
+        alcohol['high'] = fuzz.trimf(alcohol.universe, [p_al[6], p_al[7], p_al[8]])
+        malicacid['low'] = fuzz.trimf(malicacid.universe, [p_ma[0], p_ma[1], p_ma[2]])
+        malicacid['medium'] = fuzz.trimf(malicacid.universe, [p_ma[3], p_ma[4], p_ma[5]])
+        malicacid['high'] = fuzz.trimf(malicacid.universe, [p_ma[6], p_ma[7], p_ma[8]])
+        color_intensity['low'] = fuzz.trimf(color_intensity.universe, [p_ci[0], p_ci[1], p_ci[2]])
+        color_intensity['medium'] = fuzz.trimf(color_intensity.universe, [p_ci[3], p_ci[4], p_ci[5]])
+        color_intensity['high'] = fuzz.trimf(color_intensity.universe, [p_ci[6], p_ci[7], p_ci[8]])
+
+    else:
+        alcohol['low'] = fuzz.trimf(alcohol.universe, [11, 11, 12.5])
+        alcohol['medium'] = fuzz.trimf(alcohol.universe, [12, 13.5, 15])
+        alcohol['high'] = fuzz.trimf(alcohol.universe, [13.5, 15, 15])
+        malicacid['low'] = fuzz.trimf(malicacid.universe, [0, 0, 2])
+        malicacid['medium'] = fuzz.trimf(malicacid.universe, [1, 2.5, 4])
+        malicacid['high'] = fuzz.trimf(malicacid.universe, [3, 5, 5])
+        color_intensity['low'] = fuzz.trimf(color_intensity.universe, [0, 0, 5])
+        color_intensity['medium'] = fuzz.trimf(color_intensity.universe, [4, 7, 10])
+        color_intensity['high'] = fuzz.trimf(color_intensity.universe, [8, 13, 15])
+
     wine_class['class_1'] = fuzz.trimf(wine_class.universe, [1, 1, 1])
     wine_class['class_2'] = fuzz.trimf(wine_class.universe, [2, 2, 2])
     wine_class['class_3'] = fuzz.trimf(wine_class.universe, [3, 3, 3])
@@ -76,17 +131,11 @@ def create_wine_fuzzy_system():
     rule2 = ctrl.Rule(alcohol['medium'] & malicacid['medium'] & color_intensity['medium'], wine_class['class_2'])
     rule3 = ctrl.Rule(alcohol['low'] & malicacid['high'] & color_intensity['low'], wine_class['class_3'])
 
-    alcohol.view()
-    malicacid.view()
-    color_intensity.view()
-    wine_class.view()
-
     wine_ctrl = ctrl.ControlSystem([rule1, rule2, rule3])
     return ctrl.ControlSystemSimulation(wine_ctrl)
 
 
-
-def create_seeds_fuzzy_system():
+def create_seeds_fuzzy_system(params=None):
     area = ctrl.Antecedent(np.arange(10, 25, 0.1), 'area')
     perimeter = ctrl.Antecedent(np.arange(12, 18, 0.1), 'perimeter')
     compactness = ctrl.Antecedent(np.arange(0.80, 0.92, 0.001), 'compactness')
@@ -97,27 +146,60 @@ def create_seeds_fuzzy_system():
 
     seed_class = ctrl.Consequent(np.arange(1, 4, 1), 'seed_class')
 
-    area['small'] = fuzz.trimf(area.universe, [10, 12, 15])
-    area['medium'] = fuzz.trimf(area.universe, [13, 16, 19])
-    area['large'] = fuzz.trimf(area.universe, [17, 20, 25])
-    perimeter['small'] = fuzz.trimf(perimeter.universe, [12, 13, 14.5])
-    perimeter['medium'] = fuzz.trimf(perimeter.universe, [14, 15, 16])
-    perimeter['large'] = fuzz.trimf(perimeter.universe, [15.5, 16.5, 18])
-    compactness['low'] = fuzz.trimf(compactness.universe, [0.80, 0.83, 0.86])
-    compactness['medium'] = fuzz.trimf(compactness.universe, [0.85, 0.87, 0.89])
-    compactness['high'] = fuzz.trimf(compactness.universe, [0.88, 0.90, 0.92])
-    length['short'] = fuzz.trimf(length.universe, [4.5, 5.0, 5.5])
-    length['medium'] = fuzz.trimf(length.universe, [5.3, 5.8, 6.3])
-    length['long'] = fuzz.trimf(length.universe, [6.0, 6.5, 7.0])
-    width['narrow'] = fuzz.trimf(width.universe, [2.5, 3.0, 3.4])
-    width['medium'] = fuzz.trimf(width.universe, [3.2, 3.5, 3.8])
-    width['wide'] = fuzz.trimf(width.universe, [3.7, 4.0, 4.5])
-    asymmetry['low'] = fuzz.trimf(asymmetry.universe, [0, 1.5, 3])
-    asymmetry['medium'] = fuzz.trimf(asymmetry.universe, [2.5, 4, 5.5])
-    asymmetry['high'] = fuzz.trimf(asymmetry.universe, [5, 6, 8])
-    groove['short'] = fuzz.trimf(groove.universe, [4, 4.5, 5])
-    groove['medium'] = fuzz.trimf(groove.universe, [4.9, 5.4, 5.9])
-    groove['long'] = fuzz.trimf(groove.universe, [5.7, 6.2, 7])
+    if params is not None:
+        p_area = np.sort(params[0:9])
+        p_perim = np.sort(params[9:18])
+        p_comp = np.sort(params[18:27])
+        p_len = np.sort(params[27:36])
+        p_width = np.sort(params[36:45])
+        p_asym = np.sort(params[45:54])
+        p_groove = np.sort(params[54:63])
+
+        area['small'] = fuzz.trimf(area.universe, [p_area[0], p_area[1], p_area[2]])
+        area['medium'] = fuzz.trimf(area.universe, [p_area[3], p_area[4], p_area[5]])
+        area['large'] = fuzz.trimf(area.universe, [p_area[6], p_area[7], p_area[8]])
+        perimeter['small'] = fuzz.trimf(perimeter.universe, [p_perim[0], p_perim[1], p_perim[2]])
+        perimeter['medium'] = fuzz.trimf(perimeter.universe, [p_perim[3], p_perim[4], p_perim[5]])
+        perimeter['large'] = fuzz.trimf(perimeter.universe, [p_perim[6], p_perim[7], p_perim[8]])
+        compactness['low'] = fuzz.trimf(compactness.universe, [p_comp[0], p_comp[1], p_comp[2]])
+        compactness['medium'] = fuzz.trimf(compactness.universe, [p_comp[3], p_comp[4], p_comp[5]])
+        compactness['high'] = fuzz.trimf(compactness.universe, [p_comp[6], p_comp[7], p_comp[8]])
+        length['short'] = fuzz.trimf(length.universe, [p_len[0], p_len[1], p_len[2]])
+        length['medium'] = fuzz.trimf(length.universe, [p_len[3], p_len[4], p_len[5]])
+        length['long'] = fuzz.trimf(length.universe, [p_len[6], p_len[7], p_len[8]])
+        width['narrow'] = fuzz.trimf(width.universe, [p_width[0], p_width[1], p_width[2]])
+        width['medium'] = fuzz.trimf(width.universe, [p_width[3], p_width[4], p_width[5]])
+        width['wide'] = fuzz.trimf(width.universe, [p_width[6], p_width[7], p_width[8]])
+        asymmetry['low'] = fuzz.trimf(asymmetry.universe, [p_asym[0], p_asym[1], p_asym[2]])
+        asymmetry['medium'] = fuzz.trimf(asymmetry.universe, [p_asym[3], p_asym[4], p_asym[5]])
+        asymmetry['high'] = fuzz.trimf(asymmetry.universe, [p_asym[6], p_asym[7], p_asym[8]])
+        groove['short'] = fuzz.trimf(groove.universe, [p_groove[0], p_groove[1], p_groove[2]])
+        groove['medium'] = fuzz.trimf(groove.universe, [p_groove[3], p_groove[4], p_groove[5]])
+        groove['long'] = fuzz.trimf(groove.universe, [p_groove[6], p_groove[7], p_groove[8]])
+
+    else:
+        area['small'] = fuzz.trimf(area.universe, [10, 12, 15])
+        area['medium'] = fuzz.trimf(area.universe, [13, 16, 19])
+        area['large'] = fuzz.trimf(area.universe, [17, 20, 25])
+        perimeter['small'] = fuzz.trimf(perimeter.universe, [12, 13, 14.5])
+        perimeter['medium'] = fuzz.trimf(perimeter.universe, [14, 15, 16])
+        perimeter['large'] = fuzz.trimf(perimeter.universe, [15.5, 16.5, 18])
+        compactness['low'] = fuzz.trimf(compactness.universe, [0.80, 0.83, 0.86])
+        compactness['medium'] = fuzz.trimf(compactness.universe, [0.85, 0.87, 0.89])
+        compactness['high'] = fuzz.trimf(compactness.universe, [0.88, 0.90, 0.92])
+        length['short'] = fuzz.trimf(length.universe, [4.5, 5.0, 5.5])
+        length['medium'] = fuzz.trimf(length.universe, [5.3, 5.8, 6.3])
+        length['long'] = fuzz.trimf(length.universe, [6.0, 6.5, 7.0])
+        width['narrow'] = fuzz.trimf(width.universe, [2.5, 3.0, 3.4])
+        width['medium'] = fuzz.trimf(width.universe, [3.2, 3.5, 3.8])
+        width['wide'] = fuzz.trimf(width.universe, [3.7, 4.0, 4.5])
+        asymmetry['low'] = fuzz.trimf(asymmetry.universe, [0, 1.5, 3])
+        asymmetry['medium'] = fuzz.trimf(asymmetry.universe, [2.5, 4, 5.5])
+        asymmetry['high'] = fuzz.trimf(asymmetry.universe, [5, 6, 8])
+        groove['short'] = fuzz.trimf(groove.universe, [4, 4.5, 5])
+        groove['medium'] = fuzz.trimf(groove.universe, [4.9, 5.4, 5.9])
+        groove['long'] = fuzz.trimf(groove.universe, [5.7, 6.2, 7])
+
     seed_class['class1'] = fuzz.trimf(seed_class.universe, [1, 1, 1])
     seed_class['class2'] = fuzz.trimf(seed_class.universe, [2, 2, 2])
     seed_class['class3'] = fuzz.trimf(seed_class.universe, [3, 3, 3])
@@ -127,11 +209,6 @@ def create_seeds_fuzzy_system():
     rule3 = ctrl.Rule(area['large'] & compactness['medium'] & groove['long'], seed_class['class2'])
     rule4 = ctrl.Rule(width['wide'] & length['long'], seed_class['class2'])
     rule5 = ctrl.Rule(asymmetry['high'], seed_class['class3'])
-
-    area.view()
-    compactness.view()
-    asymmetry.view()
-    seed_class.view()
 
     seeds_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5])
     return ctrl.ControlSystemSimulation(seeds_ctrl)
@@ -204,9 +281,58 @@ def main():
 
 
     # Trenowanie i testowanie IRIS
-    iris_fuzzy_system = create_iris_fuzzy_system()
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_iris, y_iris, test_size=0.2, random_state=42
+    )
 
+    print("\nData Split:")
+    print(f"Training set size: {X_train.shape[0]}")
+    print(f"Test set size: {X_test.shape[0]}")
 
+    def objective_function(solution):
+        temp_fuzzy_system = create_iris_fuzzy_system(params=solution)
+        y_pred = predict_for_iris(temp_fuzzy_system, X_train)
+        return 1.0 - accuracy_score(y_train, y_pred)
+
+    problem_dict = {
+        "obj_func": objective_function,
+        "bounds": FloatVar(
+            lb=[
+                4.0, 4.0, 4.5, 5.0, 4.8, 5.5, 6.2, 5.8, 6.3, 7.0, 7.5,  # Sepal Length
+                2.0, 2.0, 2.5, 2.8, 2.5, 3.0, 3.5, 3.3, 3.6, 4.5, 4.5,  # Sepal Width
+                1.0, 1.0, 1.5, 2.0, 2.0, 4.0, 4.8, 4.5, 5.0, 6.5, 7.0,  # Petal Length
+                0.0, 0.0, 0.2, 0.5, 0.4, 1.0, 1.6, 1.4, 1.8, 2.4, 2.4  # Petal Width
+            ],
+            ub=[
+                5.0, 5.0, 5.5, 6.0, 5.5, 6.2, 7.0, 6.5, 7.5, 8.5, 8.5,  # Sepal Length
+                2.8, 2.8, 3.0, 3.3, 3.2, 3.8, 4.0, 4.0, 4.5, 5.0, 5.0,  # Sepal Width
+                2.0, 2.0, 2.5, 3.0, 4.5, 5.0, 5.5, 5.5, 6.5, 7.5, 7.5,  # Petal Length
+                0.3, 0.3, 0.6, 0.9, 1.2, 1.8, 2.0, 2.0, 2.5, 2.6, 2.6  # Petal Width
+            ]
+        ),
+        "minmax": "min",
+        "log_to": None,
+        "save_population": False,
+    }
+    optimizer = OriginalGWO(epoch=50, pop_size=30)
+    result = optimizer.solve(problem_dict)
+
+    best_solution = result.solution
+    best_fitness = result.target.fitness
+
+    print(f"Optimization finished.")
+    print(f"Best Fitness (Error Rate on Train Set): {best_fitness:.4f}")
+    print(f"Best Parameters Found: \n{best_solution}\n")
+
+    original_fuzzy_system = create_iris_fuzzy_system(params=None)
+    y_pred_original = predict_for_iris(original_fuzzy_system, X_test)
+    accuracy_original = accuracy_score(y_test, y_pred_original)
+    print(f"Accuracy ORIGINAL Fuzzy System: {accuracy_original:.4f}")
+
+    optimized_fuzzy_system = create_iris_fuzzy_system(params=best_solution)
+    y_pred_optimized = predict_for_iris(optimized_fuzzy_system, X_test)
+    accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
+    print(f"Accuracy GWO-OPTIMIZED Fuzzy System: {accuracy_optimized:.4f} \n")
 
 
 
