@@ -4,7 +4,7 @@ from mealpy import FloatVar
 from mealpy.swarm_based.GWO import OriginalGWO
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, \
     classification_report
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
@@ -23,10 +23,10 @@ def remove_outliers_turkey(X, y):
     return X[non_outlier_mask], y[non_outlier_mask]
 
 def create_iris_fuzzy_system(params=None):
-    sepal_length = ctrl.Antecedent(np.arange(4.0, 8.5, 0.01), 'sepal_length')
-    sepal_width = ctrl.Antecedent(np.arange(2.0, 5.0, 0.01), 'sepal_width')
-    petal_length = ctrl.Antecedent(np.arange(1.0, 7.5, 0.01), 'petal_length')
-    petal_width = ctrl.Antecedent(np.arange(0.0, 2.6, 0.01), 'petal_width')
+    sepal_length = ctrl.Antecedent(np.arange(4.0, 8.5, 0.1), 'sepal_length')
+    sepal_width = ctrl.Antecedent(np.arange(2.0, 5.0, 0.1), 'sepal_width')
+    petal_length = ctrl.Antecedent(np.arange(1.0, 7.5, 0.1), 'petal_length')
+    petal_width = ctrl.Antecedent(np.arange(0.0, 2.6, 0.1), 'petal_width')
 
     iris_class = ctrl.Consequent(np.arange(0, 3, 1), 'iris_class')
 
@@ -92,63 +92,74 @@ def predict_for_iris(fuzzy_system, X_data):
     return np.array(predictions)
 
 def create_wine_fuzzy_system(params=None):
-    alcohol = ctrl.Antecedent(np.arange(10, 16, 0.1), 'alcohol')
-    malic_acid = ctrl.Antecedent(np.arange(0, 6, 0.01), 'malic_acid')
-    flavanoids = ctrl.Antecedent(np.arange(0, 5, 0.01), 'flavanoids')
-    color_intensity = ctrl.Antecedent(np.arange(0, 15, 0.01), 'color_intensity')
+    alcohol = ctrl.Antecedent(np.arange(11, 15, 0.01), 'alcohol')
+    malic_acid = ctrl.Antecedent(np.arange(0.5, 6, 0.01), 'malic_acid')
+    flavanoids = ctrl.Antecedent(np.arange(0.5, 6, 0.01), 'flavanoids')
+    proline = ctrl.Antecedent(np.arange(200, 1700, 10), 'proline')
 
-    wine_class = ctrl.Consequent(np.arange(1, 4, 1), 'wine_class')
+    wine_class = ctrl.Consequent(np.arange(0, 4, 1), 'wine_class')
 
     if params is not None:
-        p_al = np.sort(params[:9])
-        p_ma = np.sort(params[9:18])
-        p_fl = np.sort(params[18:27])
-        p_ci = np.sort(params[27:36])
+        p_al = np.sort(params[:11])
+        p_ma = np.sort(params[11:22])
+        p_fl = np.sort(params[22:33])
+        p_pr = np.sort(params[33:44])
 
-        alcohol['low'] = fuzz.trimf(alcohol.universe, [p_al[0], p_al[1], p_al[2]])
-        alcohol['medium'] = fuzz.trimf(alcohol.universe, [p_al[3], p_al[4], p_al[5]])
-        alcohol['high'] = fuzz.trimf(alcohol.universe, [p_al[6], p_al[7], p_al[8]])
-        malic_acid['low'] = fuzz.trimf(malic_acid.universe, [p_ma[0], p_ma[1], p_ma[2]])
-        malic_acid['medium'] = fuzz.trimf(malic_acid.universe, [p_ma[3], p_ma[4], p_ma[5]])
-        malic_acid['high'] = fuzz.trimf(malic_acid.universe, [p_ma[6], p_ma[7], p_ma[8]])
-        flavanoids['low'] = fuzz.trimf(flavanoids.universe, [p_fl[0], p_fl[1], p_fl[2]])
-        flavanoids['medium'] = fuzz.trimf(flavanoids.universe, [p_fl[3], p_fl[4], p_fl[5]])
-        flavanoids['high'] = fuzz.trimf(flavanoids.universe, [p_fl[6], p_fl[7], p_fl[8]])
-        color_intensity['low'] = fuzz.trimf(color_intensity.universe, [p_ci[0], p_ci[1], p_ci[2]])
-        color_intensity['medium'] = fuzz.trimf(color_intensity.universe, [p_ci[3], p_ci[4], p_ci[5]])
-        color_intensity['high'] = fuzz.trimf(color_intensity.universe, [p_ci[6], p_ci[7], p_ci[8]])
+        alcohol['low'] = fuzz.trapmf(alcohol.universe, [p_al[0], p_al[1], p_al[2], p_al[3]])
+        alcohol['medium'] = fuzz.trimf(alcohol.universe, [p_al[4], p_al[5], p_al[6]])
+        alcohol['high'] = fuzz.trapmf(alcohol.universe, [p_al[7], p_al[8], p_al[9], p_al[10]])
+        malic_acid['low'] = fuzz.trapmf(malic_acid.universe, [p_ma[0], p_ma[1], p_ma[2], p_ma[3]])
+        malic_acid['medium'] = fuzz.trimf(malic_acid.universe, [p_ma[4], p_ma[5], p_ma[6]])
+        malic_acid['high'] = fuzz.trapmf(malic_acid.universe, [p_ma[7], p_ma[8], p_ma[9], p_ma[10]])
+        flavanoids['low'] = fuzz.trapmf(flavanoids.universe, [p_fl[0], p_fl[1], p_fl[2], p_fl[3]])
+        flavanoids['medium'] = fuzz.trimf(flavanoids.universe, [p_fl[4], p_fl[5], p_fl[6]])
+        flavanoids['high'] = fuzz.trapmf(flavanoids.universe, [p_fl[7], p_fl[8], p_fl[9], p_fl[10]])
+        proline['low'] = fuzz.trapmf(proline.universe, [p_pr[0], p_pr[1], p_pr[2], p_pr[3]])
+        proline['medium'] = fuzz.trimf(proline.universe, [p_pr[4], p_pr[5], p_pr[6]])
+        proline['high'] = fuzz.trapmf(proline.universe, [p_pr[7], p_pr[8], p_pr[9], p_pr[10]])
 
     else:
-        alcohol['low'] = fuzz.trimf(alcohol.universe, [10, 11, 12.5])
-        alcohol['medium'] = fuzz.trimf(alcohol.universe, [12, 13, 14])
-        alcohol['high'] = fuzz.trimf(alcohol.universe, [13, 14.5, 16])
-        malic_acid['low'] = fuzz.trimf(malic_acid.universe, [0, 1, 2])
+        alcohol['low'] = fuzz.trapmf(alcohol.universe, [11, 11, 12.5, 13])
+        alcohol['medium'] = fuzz.trimf(alcohol.universe, [12.5, 13.5, 14])
+        alcohol['high'] = fuzz.trapmf(alcohol.universe, [13.5, 14, 15, 15])
+        malic_acid['low'] = fuzz.trapmf(malic_acid.universe, [0.5, 0.5, 1.5, 2])
         malic_acid['medium'] = fuzz.trimf(malic_acid.universe, [1.5, 2.5, 3.5])
-        malic_acid['high'] = fuzz.trimf(malic_acid.universe, [3, 4.5, 6])
-        flavanoids['low'] = fuzz.trimf(flavanoids.universe, [0, 1, 2])
-        flavanoids['medium'] = fuzz.trimf(flavanoids.universe, [1.5, 2.5, 3.5])
-        flavanoids['high'] = fuzz.trimf(flavanoids.universe, [3, 4, 5])
-        color_intensity['low'] = fuzz.trimf(color_intensity.universe, [0, 2, 5])
-        color_intensity['medium'] = fuzz.trimf(color_intensity.universe, [4, 6, 9])
-        color_intensity['high'] = fuzz.trimf(color_intensity.universe, [8, 12, 15])
+        malic_acid['high'] = fuzz.trapmf(malic_acid.universe, [3, 3.5, 6, 6])
+        flavanoids['low'] = fuzz.trapmf(flavanoids.universe, [0.1, 0.1, 1, 1.5])
+        flavanoids['medium'] = fuzz.trimf(flavanoids.universe, [1, 2, 3])
+        flavanoids['high'] = fuzz.trapmf(flavanoids.universe, [2.5, 3, 6, 6])
+        proline['low'] = fuzz.trapmf(proline.universe, [200, 200, 800, 1000])
+        proline['medium'] = fuzz.trimf(proline.universe, [800, 1000, 1200])
+        proline['high'] = fuzz.trapmf(proline.universe, [1100, 1300, 1700, 1700])
 
-    wine_class['class_1'] = fuzz.trimf(wine_class.universe, [1, 1, 1])
-    wine_class['class_2'] = fuzz.trimf(wine_class.universe, [2, 2, 2])
-    wine_class['class_3'] = fuzz.trimf(wine_class.universe, [3, 3, 3])
+    wine_class['class_1'] = fuzz.trimf(wine_class.universe, [0, 1, 1.5])
+    wine_class['class_2'] = fuzz.trimf(wine_class.universe, [1, 2, 2.5])
+    wine_class['class_3'] = fuzz.trimf(wine_class.universe, [2, 3, 3.5])
 
-    rule1 = ctrl.Rule(alcohol['high'] & flavanoids['high'], wine_class['class_1'])
-    rule2 = ctrl.Rule(alcohol['medium'] & flavanoids['medium'], wine_class['class_2'])
-    rule3 = ctrl.Rule(alcohol['low'] & flavanoids['low'], wine_class['class_2'])
-    rule4 = ctrl.Rule(color_intensity['high'] & flavanoids['low'], wine_class['class_3'])
-    rule5 = ctrl.Rule(color_intensity['medium'] & flavanoids['low'], wine_class['class_2'])
-    rule6 = ctrl.Rule(alcohol['high'] & color_intensity['low'], wine_class['class_1'])
-    rule7 = ctrl.Rule(alcohol['low'] & color_intensity['high'], wine_class['class_3'])
-    rule8 = ctrl.Rule(alcohol['high'] & flavanoids['medium'] & color_intensity['low'], wine_class['class_1'])
-    rule9 = ctrl.Rule(alcohol['medium'] & malic_acid['high'] & flavanoids['low'], wine_class['class_3'])
-    rule10 = ctrl.Rule(flavanoids['high'] & color_intensity['medium'] & malic_acid['low'], wine_class['class_1'])
-    rule11 = ctrl.Rule(alcohol['low'] & malic_acid['medium'] & color_intensity['medium'], wine_class['class_2'])
+    # rule1 = ctrl.Rule(alcohol['high'] & flavanoids['high'] & proline['high'], wine_class['class_1'])
+    # rule2 = ctrl.Rule(alcohol['medium'] & malic_acid['high'] & flavanoids['low'], wine_class['class_2'])
+    # rule3 = ctrl.Rule(alcohol['low'] & malic_acid['high'] & flavanoids['low'] & proline['low'], wine_class['class_3'])
+    # rule4 = ctrl.Rule(alcohol['medium'] & malic_acid['medium'] & flavanoids['medium'], wine_class['class_2'])
+    # rule5 = ctrl.Rule(alcohol['high'] & malic_acid['low'] & flavanoids['high'], wine_class['class_1'])
+    # rule6 = ctrl.Rule(alcohol['low'] & malic_acid['high'] & proline['medium'], wine_class['class_3'])
+    # rule7 = ctrl.Rule(alcohol['medium'] & flavanoids['medium'] & proline['medium'], wine_class['class_2'])
+    # rule8 = ctrl.Rule(alcohol['high'] & malic_acid['medium'] & flavanoids['high'], wine_class['class_1'])
+    rules = [
+        ctrl.Rule(alcohol['high'] & flavanoids['high'] & malic_acid['low'], wine_class['class_1']),
+        ctrl.Rule(alcohol['high'] & proline['high'] & malic_acid['low'], wine_class['class_1']),
+        ctrl.Rule(flavanoids['high'] & proline['high'] & malic_acid['medium'], wine_class['class_1']),
+        ctrl.Rule(alcohol['medium'] & malic_acid['medium'] & flavanoids['medium'], wine_class['class_2']),
+        ctrl.Rule(alcohol['medium'] & malic_acid['high'] & flavanoids['low'], wine_class['class_2']),
+        ctrl.Rule(alcohol['medium'] & proline['medium'] & malic_acid['high'], wine_class['class_2']),
+        ctrl.Rule(alcohol['low'] & malic_acid['high'] & flavanoids['low'], wine_class['class_3']),
+        ctrl.Rule(alcohol['low'] & proline['low'] & malic_acid['high'], wine_class['class_3']),
+        ctrl.Rule(flavanoids['low'] & proline['low'] & malic_acid['high'], wine_class['class_3']),
+        ctrl.Rule(alcohol['high'] & flavanoids['medium'] & malic_acid['medium'], wine_class['class_1']),
+        ctrl.Rule(alcohol['medium'] & flavanoids['medium'] & malic_acid['medium'], wine_class['class_2']),
+        ctrl.Rule(alcohol['low'] & flavanoids['low'] & malic_acid['medium'], wine_class['class_3'])
+    ]
 
-    wine_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11])
+    wine_ctrl = ctrl.ControlSystem(rules)
     return ctrl.ControlSystemSimulation(wine_ctrl)
 
 def predict_for_wine(fuzzy_system, X_data):
@@ -339,16 +350,46 @@ def wine_model(X_wine, y_wine):
         "obj_func": objective_function_wine,
         "bounds": FloatVar(
             lb=[
-                11.0, 11.2, 11.8, 11.5, 12.5, 13.5, 13.0, 14.0, 14.5,  # Alcohol
-                0.5, 1.0, 1.5, 1.4, 2.0, 3.0, 2.8, 4.0, 5.0,  # Malic Acid
-                0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 3.5, 4.0, 4.5,  # Flavanoids
-                1.0, 2.0, 3.5, 3.0, 4.5, 6.5, 6.0, 8.0, 12.0,  # Color Intensity
+                # Alcohol (11 params: 4 for 'low', 3 for 'medium', 4 for 'high')
+                11.0, 11.0, 11.5, 12.0,  # 'low' (trapmf: a, b, c, d)
+                12.5, 13.0, 13.5,  # 'medium' (trimf: a, b, c)
+                13.5, 14.0, 14.5, 15.0,  # 'high' (trapmf: a, b, c, d)
+
+                # Malic Acid (11 params)
+                0.0, 0.0, 1.0, 2.0,  # 'low' (trapmf)
+                2.0, 3.0, 4.0,  # 'medium' (trimf)
+                3.5, 4.0, 5.0, 6.0,  # 'high' (trapmf)
+
+                # Flavanoids (11 params)
+                0.0, 0.0, 1.0, 1.5,  # 'low' (trapmf)
+                1.5, 2.5, 3.5,  # 'medium' (trimf)
+                3.0, 4.0, 5.0, 5.0,  # 'high' (trapmf)
+
+                # Proline (11 params)
+                1.0, 1.0, 3.0, 5.0,  # 'low' (trapmf)
+                5.0, 7.0, 9.0,  # 'medium' (trimf)
+                8.0, 10.0, 12.0, 14.0,  # 'high' (trapmf)
             ],
             ub=[
-                12.0, 12.5, 13.0, 13.0, 13.8, 14.5, 14.0, 15.0, 15.0,  # Alcohol
-                1.5, 2.0, 2.5, 2.8, 3.5, 4.5, 4.0, 5.5, 6.0,  # Malic Acid
-                1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 4.5, 4.8, 5.0,  # Flavanoids
-                3.0, 4.0, 5.0, 6.0, 7.5, 8.5, 9.0, 13.0, 14.0,  # Color Intensity
+                # Alcohol (11 params)
+                11.5, 12.0, 12.5, 13.0,  # 'low' (trapmf)
+                13.0, 13.5, 14.0,  # 'medium' (trimf)
+                14.0, 14.5, 15.0, 15.0,  # 'high' (trapmf)
+
+                # Malic Acid (11 params)
+                1.0, 2.0, 2.5, 3.0,  # 'low' (trapmf)
+                3.0, 3.5, 4.5,  # 'medium' (trimf)
+                4.5, 5.0, 6.0, 6.0,  # 'high' (trapmf)
+
+                # Flavanoids (11 params)
+                1.0, 1.5, 2.0, 2.5,  # 'low' (trapmf)
+                2.5, 3.5, 4.5,  # 'medium' (trimf)
+                4.0, 5.0, 5.0, 5.0,  # 'high' (trapmf)
+
+                # Proline (11 params)
+                3.0, 5.0, 6.0, 7.0,  # 'low' (trapmf)
+                7.0, 8.0, 10.0,  # 'medium' (trimf)
+                11.0, 13.0, 14.0, 14.0,  # 'high' (trapmf)
             ]
         ),
         "minmax": "min",
@@ -444,6 +485,8 @@ def seeds_model(X_seeds, y_seeds):
     display_metrics(y_test, y_pred_original, "Accuracy ORIGINAL SEEDS")
     display_metrics(y_test, y_pred_optimized, "Accuracy GWO-OPTIMIZED SEEDS")
 
+
+
 def display_metrics(y_true, y_pred, title):
     print(f"--- {title} ---")
 
@@ -463,6 +506,104 @@ def display_metrics(y_true, y_pred, title):
     print("Raport klasyfikacji:")
     print(classification_report(y_true, y_pred, zero_division=0, target_names=['Klasa 1', 'Klasa 2', 'Klasa 3']))
 
+def seeds_model_cv(X_seeds, y_seeds, n_splits=5):
+    kfold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    original_scores = []
+    optimized_scores = []
+
+    for fold, (train_index, test_index) in enumerate(kfold.split(X_seeds, y_seeds)):
+        print(f"\n===== FOLD {fold + 1}/{n_splits} =====\n")
+        X_train, X_test = X_seeds[train_index], X_seeds[test_index]
+        y_train, y_test = y_seeds[train_index], y_seeds[test_index]
+
+        original_fuzzy_system = create_seeds_fuzzy_system(params=None)
+        y_pred_original = predict_for_seeds(original_fuzzy_system, X_test)
+        accuracy_original = accuracy_score(y_test, y_pred_original)
+        original_scores.append(accuracy_original)
+        print(f"FOLD {fold + 1} >> Accuracy ORIGINAL Fuzzy System: {accuracy_original:.4f}")
+
+        def objective_function_seeds(solution):
+            temp_fuzzy_system = create_seeds_fuzzy_system(params=solution)
+            y_pred = predict_for_seeds(temp_fuzzy_system, X_train)
+            return 1.0 - accuracy_score(y_train, y_pred)
+
+        problem_dict = {
+            "obj_func": objective_function_seeds,
+            "bounds": FloatVar(
+            lb=[
+                10, 11, 13, 12, 14, 17, 16, 18, 22,
+                12, 12.5, 13.5, 13, 14.5, 15.5, 15, 16, 17,
+                0.80, 0.82, 0.84, 0.83, 0.86, 0.88, 0.87, 0.89, 0.91,
+                4.5, 4.8, 5.2, 5.0, 5.5, 6.0, 5.8, 6.2, 6.8,
+                2.5, 2.8, 3.1, 3.0, 3.3, 3.6, 3.5, 3.8, 4.2,
+                0, 1, 2.5, 2, 3.5, 5, 4.5, 5.5, 7.5,
+                4, 4.2, 4.8, 4.5, 5.2, 5.7, 5.5, 6.0, 6.8,
+            ],
+            ub=[
+                13, 14, 16, 17, 18, 20, 22, 24, 25,
+                13.5, 14, 15, 15.5, 16, 16.5, 17, 17.5, 18,
+                0.84, 0.85, 0.87, 0.88, 0.89, 0.90, 0.90, 0.91, 0.92,
+                5.2, 5.4, 5.8, 6.0, 6.2, 6.5, 6.8, 6.9, 7.0,
+                3.1, 3.3, 3.5, 3.6, 3.8, 4.0, 4.2, 4.4, 4.5,
+                2.5, 3, 4.5, 5, 5.5, 6.5, 7.5, 7.8, 8.0,
+                4.8, 5.0, 5.5, 5.7, 5.9, 6.2, 6.8, 6.9, 7.0,
+            ]),
+            "minmax": "min",
+            "log_to": None,
+            "save_population": False,
+        }
+
+        optimizer = OriginalGWO(epoch=50, pop_size=30)
+        result = optimizer.solve(problem_dict)
+        best_solution = result.solution
+
+        optimized_fuzzy_system = create_seeds_fuzzy_system(params=best_solution)
+        y_pred_optimized = predict_for_seeds(optimized_fuzzy_system, X_test)
+        accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
+        optimized_scores.append(accuracy_optimized)
+        print(f"FOLD {fold + 1} >> Accuracy GWO-OPTIMIZED Fuzzy System: {accuracy_optimized:.4f}")
+
+    print("\n\n--- CROSS-VALIDATION FINAL RESULTS ---\n")
+    print(f"Original model accuracy: {np.mean(original_scores):.4f} +/- {np.std(original_scores):.4f}")
+    print(f"GWO-Optimized model accuracy: {np.mean(optimized_scores):.4f} +/- {np.std(optimized_scores):.4f}")
+
+def train_and_evaluate_genfis(X, y, n_splits=5):
+    kfold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    accuracies = []
+    n_classes = len(np.unique(y))
+
+    print(f"\n\n--- Evaluating GENFIS (Fuzzy C-Means) Model with {n_splits}-Fold CV ---\n")
+
+    for fold, (train_index, test_index) in enumerate(kfold.split(X, y)):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        centers, u_train, _, _, _, _, _ = fuzz.cluster.cmeans(
+            X_train.T, c=n_classes, m=2, error=0.005, maxiter=1000, init=None
+        )
+
+        cluster_labels = np.zeros(n_classes)
+        train_labels_by_cluster = np.argmax(u_train, axis=0)
+        for i in range(n_classes):
+            points_in_cluster = y_train[train_labels_by_cluster == i]
+            if len(points_in_cluster) > 0:
+                cluster_labels[i] = np.bincount(points_in_cluster).argmax()
+            else:
+                cluster_labels[i] = np.random.choice(np.unique(y))
+
+        u_test, _, _, _, _, _ = fuzz.cluster.cmeans_predict(
+            X_test.T, centers, m=2, error=0.005, maxiter=1000
+        )
+
+        predicted_clusters = np.argmax(u_test, axis=0)
+        y_pred = np.array([cluster_labels[c] for c in predicted_clusters])
+
+        accuracy = accuracy_score(y_test, y_pred)
+        accuracies.append(accuracy)
+        print(f"FOLD {fold + 1} >> Genfis Accuracy: {accuracy:.4f}")
+
+    print("\n--- GENFIS FINAL RESULTS ---\n")
+    print(f"Genfis (FCM) model accuracy: {np.mean(accuracies):.4f} +/- {np.std(accuracies):.4f}")
 
 
 
@@ -528,9 +669,9 @@ def main():
     X_seeds = X_seeds_no_outliers
     y_seeds = y_seeds_no_outliers
 
-    # iris_model(X_iris, y_iris)
-    wine_model(X_wine, y_wine)
-    # seeds_model(X_seeds, y_seeds)
+    iris_model(X_iris, y_iris)
+    # wine_model(X_wine, y_wine)
+    # seeds_model(X_seeds, y_seeds) #liczy się około 13 minut
 
 
 
