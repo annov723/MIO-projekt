@@ -257,7 +257,7 @@ def seeds_model():
     display_metrics(y_test, y_pred_original, "ORIGINAL SEEDS")
     display_metrics(y_test, y_pred_optimized, "GWO-OPTIMIZED SEEDS")
 
-    seeds_model_cv(X_seeds, y_seeds, n_splits=5)
+    seeds_model_cv(X_seeds, y_seeds)
     train_and_evaluate_genfis(X_seeds, y_seeds, n_splits=5)
 
 

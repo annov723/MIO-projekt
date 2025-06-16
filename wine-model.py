@@ -119,11 +119,11 @@ def wine_model_cv(X_wine, y_wine, n_splits=5):
 
     for fold, (train_index, test_index) in enumerate(kfold.split(X_wine, y_wine)):
         print(f"\n===== FOLD {fold + 1}/{n_splits} =====\n")
-        X_train, X_test = X_wine[train_index], y_wine[train_index]
-        y_train, y_test = X_wine[test_index], y_wine[test_index]
+        X_train, X_test = X_wine[train_index], X_wine[test_index]
+        y_train, y_test = y_wine[train_index], y_wine[test_index]
 
         original_fuzzy_system = create_wine_fuzzy_system(params=None)
-        y_pred_original = predict_for_wine(original_fuzzy_system, y_train) # Note: predict on X_test (y_train here is a typo fix)
+        y_pred_original = predict_for_wine(original_fuzzy_system, X_test)
         accuracy_original = accuracy_score(y_test, y_pred_original)
         original_scores.append(accuracy_original)
         print(f"FOLD {fold + 1} >> Accuracy ORIGINAL Fuzzy System: {accuracy_original:.4f}")
@@ -133,16 +133,27 @@ def wine_model_cv(X_wine, y_wine, n_splits=5):
             y_pred = predict_for_wine(temp_fuzzy_system, X_train)
             return 1.0 - accuracy_score(y_train, y_pred)
 
+        alcohol_min, alcohol_max = X_wine[:, 0].min(), X_wine[:, 0].max()
+        malic_min, malic_max = X_wine[:, 1].min(), X_wine[:, 1].max()
+        flav_min, flav_max = X_wine[:, 6].min(), X_wine[:, 6].max()
+        proline_min, proline_max = X_wine[:, 12].min(), X_wine[:, 12].max()
+
+        new_lb = (
+                [alcohol_min] * 12 +
+                [malic_min] * 9 +
+                [flav_min] * 12 +
+                [proline_min] * 12
+        )
+        new_ub = (
+                [alcohol_max] * 12 +
+                [malic_max] * 9 +
+                [flav_max] * 12 +
+                [proline_max] * 12
+        )
+
         problem_dict = {
             "obj_func": objective_function_wine,
-            "bounds": FloatVar(
-                lb=[11.0, 11.5, 12.0, 12.0, 12.5, 13.0, 13.0, 13.5, 14.0, 13.5, 14.0, 14.2, 0.5, 1.0, 2.0, 1.5, 2.0,
-                    3.0, 2.5, 3.5, 5.0, 1.0, 1.3, 2.0, 1.7, 2.0, 2.5, 2.2, 2.6, 3.2, 0.5, 1.0, 1.8, 1.3, 2.0, 3.0, 2.5,
-                    3.0, 3.8, 3.2, 4.0, 5.0, 200, 400, 800, 600, 1000, 1300, 1000, 1200, 1400, 1300, 1500, 1600],
-                ub=[11.5, 12.0, 13.0, 12.5, 13.5, 14.0, 13.5, 14.0, 14.5, 14.0, 14.5, 14.5, 1.0, 2.0, 3.0, 2.0, 3.0,
-                    4.0, 3.5, 5.0, 6.0, 1.5, 2.0, 2.5, 2.0, 2.5, 3.0, 2.7, 3.0, 4.0, 1.0, 1.8, 2.5, 2.0, 3.0, 4.0, 3.0,
-                    3.8, 5.0, 4.0, 5.0, 6.0, 400, 800, 1000, 800, 1300, 1500, 1200, 1400, 1700, 1500, 1700, 1700]
-            ),
+            "bounds": FloatVar(lb=new_lb, ub=new_ub),
             "minmax": "min",
             "log_to": None,
             "save_population": False,
@@ -153,7 +164,7 @@ def wine_model_cv(X_wine, y_wine, n_splits=5):
         best_solution = result.solution
 
         optimized_fuzzy_system = create_wine_fuzzy_system(params=best_solution)
-        y_pred_optimized = predict_for_wine(optimized_fuzzy_system, y_train)
+        y_pred_optimized = predict_for_wine(optimized_fuzzy_system, X_test)
         accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
         optimized_scores.append(accuracy_optimized)
         print(f"FOLD {fold + 1} >> Accuracy GWO-OPTIMIZED Fuzzy System: {accuracy_optimized:.4f}")
@@ -198,16 +209,27 @@ def wine_model():
         y_pred = predict_for_wine(temp_fuzzy_system, X_train)
         return 1.0 - accuracy_score(y_train, y_pred)
 
+    alcohol_min, alcohol_max = X_wine[:, 0].min(), X_wine[:, 0].max()
+    malic_min, malic_max = X_wine[:, 1].min(), X_wine[:, 1].max()
+    flav_min, flav_max = X_wine[:, 6].min(), X_wine[:, 6].max()
+    proline_min, proline_max = X_wine[:, 12].min(), X_wine[:, 12].max()
+
+    new_lb = (
+            [alcohol_min] * 12 +
+            [malic_min] * 9 +
+            [flav_min] * 12 +
+            [proline_min] * 12
+    )
+    new_ub = (
+            [alcohol_max] * 12 +
+            [malic_max] * 9 +
+            [flav_max] * 12 +
+            [proline_max] * 12
+    )
+
     problem_dict = {
         "obj_func": objective_function_wine,
-        "bounds": FloatVar(
-            lb=[11.0, 11.5, 12.0, 12.0, 12.5, 13.0, 13.0, 13.5, 14.0, 13.5, 14.0, 14.2, 0.5, 1.0, 2.0, 1.5, 2.0, 3.0,
-                2.5, 3.5, 5.0, 1.0, 1.3, 2.0, 1.7, 2.0, 2.5, 2.2, 2.6, 3.2, 0.5, 1.0, 1.8, 1.3, 2.0, 3.0, 2.5, 3.0, 3.8,
-                3.2, 4.0, 5.0, 200, 400, 800, 600, 1000, 1300, 1000, 1200, 1400, 1300, 1500, 1600],
-            ub=[11.5, 12.0, 13.0, 12.5, 13.5, 14.0, 13.5, 14.0, 14.5, 14.0, 14.5, 14.5, 1.0, 2.0, 3.0, 2.0, 3.0, 4.0,
-                3.5, 5.0, 6.0, 1.5, 2.0, 2.5, 2.0, 2.5, 3.0, 2.7, 3.0, 4.0, 1.0, 1.8, 2.5, 2.0, 3.0, 4.0, 3.0, 3.8, 5.0,
-                4.0, 5.0, 6.0, 400, 800, 1000, 800, 1300, 1500, 1200, 1400, 1700, 1500, 1700, 1700]
-        ),
+        "bounds": FloatVar(lb=new_lb, ub=new_ub),
         "minmax": "min",
         "log_to": "console",
         "save_population": False,
@@ -228,7 +250,7 @@ def wine_model():
     display_metrics(y_test, y_pred_original, "ORIGINAL WINE")
     display_metrics(y_test, y_pred_optimized, "GWO-OPTIMIZED WINE")
 
-    wine_model_cv(X_wine, y_wine, n_splits=5)
+    wine_model_cv(X_wine, y_wine)
     train_and_evaluate_genfis(X_wine, y_wine, n_splits=5)
 
 
