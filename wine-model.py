@@ -122,26 +122,22 @@ def wine_model_cv(X_wine, y_wine, n_splits=5):
     original_scores = []
     optimized_scores = []
 
-    # Loop through each fold
     for fold, (train_index, test_index) in enumerate(kfold.split(X_wine, y_wine)):
         print(f"\n===== FOLD {fold + 1}/{n_splits} =====\n")
         X_train, X_test = X_wine[train_index], y_wine[train_index]
         y_train, y_test = X_wine[test_index], y_wine[test_index]
 
-        # 1. Evaluate the original, hand-tuned fuzzy system
         original_fuzzy_system = create_wine_fuzzy_system(params=None)
         y_pred_original = predict_for_wine(original_fuzzy_system, y_train) # Note: predict on X_test (y_train here is a typo fix)
         accuracy_original = accuracy_score(y_test, y_pred_original)
         original_scores.append(accuracy_original)
         print(f"FOLD {fold + 1} >> Accuracy ORIGINAL Fuzzy System: {accuracy_original:.4f}")
 
-        # 2. Define the objective function for the optimizer for this specific fold
         def objective_function_wine(solution):
             temp_fuzzy_system = create_wine_fuzzy_system(params=solution)
             y_pred = predict_for_wine(temp_fuzzy_system, X_train)
             return 1.0 - accuracy_score(y_train, y_pred)
 
-        # 3. Set up and run the GWO optimizer
         problem_dict = {
             "obj_func": objective_function_wine,
             "bounds": FloatVar(
@@ -153,7 +149,7 @@ def wine_model_cv(X_wine, y_wine, n_splits=5):
                     3.8, 5.0, 4.0, 5.0, 6.0, 400, 800, 1000, 800, 1300, 1500, 1200, 1400, 1700, 1500, 1700, 1700]
             ),
             "minmax": "min",
-            "log_to": None, # Set to None to avoid excessive logging during CV
+            "log_to": None,
             "save_population": False,
         }
 
@@ -161,14 +157,12 @@ def wine_model_cv(X_wine, y_wine, n_splits=5):
         result = optimizer.solve(problem_dict)
         best_solution = result.solution
 
-        # 4. Evaluate the GWO-optimized fuzzy system
         optimized_fuzzy_system = create_wine_fuzzy_system(params=best_solution)
-        y_pred_optimized = predict_for_wine(optimized_fuzzy_system, y_train) # Note: predict on X_test (y_train here is a typo fix)
+        y_pred_optimized = predict_for_wine(optimized_fuzzy_system, y_train)
         accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
         optimized_scores.append(accuracy_optimized)
         print(f"FOLD {fold + 1} >> Accuracy GWO-OPTIMIZED Fuzzy System: {accuracy_optimized:.4f}")
 
-    # 5. Print the final aggregated results
     print("\n\n--- CROSS-VALIDATION FINAL RESULTS ---\n")
     print(f"Original model accuracy:    {np.mean(original_scores):.4f} ± {np.std(original_scores):.4f}")
     print(f"GWO-Optimized model accuracy: {np.mean(optimized_scores):.4f} ± {np.std(optimized_scores):.4f}")
@@ -223,24 +217,24 @@ def wine_model():
         "log_to": "console",
         "save_population": False,
     }
-    # optimizer = OriginalGWO(epoch=50, pop_size=30)
-    # result = optimizer.solve(problem_dict)
-    #
-    # best_solution = result.solution
-    # best_fitness = result.target.fitness
-    #
-    # print(f"\nZakończono GWO dla WINE.")
-    # print(f"Best Fitness (Error Rate on Train Set): {best_fitness:.4f}")
-    # print(f"Najlepsze rozwiązanie: \n{best_solution}\n")
-    #
-    # optimized_fuzzy_system = create_wine_fuzzy_system(params=best_solution)
-    # y_pred_optimized = predict_for_wine(optimized_fuzzy_system, X_test)
+    optimizer = OriginalGWO(epoch=50, pop_size=30)
+    result = optimizer.solve(problem_dict)
+
+    best_solution = result.solution
+    best_fitness = result.target.fitness
+
+    print(f"\nZakończono GWO dla WINE.")
+    print(f"Best Fitness (Error Rate on Train Set): {best_fitness:.4f}")
+    print(f"Najlepsze rozwiązanie: \n{best_solution}\n")
+
+    optimized_fuzzy_system = create_wine_fuzzy_system(params=best_solution)
+    y_pred_optimized = predict_for_wine(optimized_fuzzy_system, X_test)
 
     display_metrics(y_test, y_pred_original, "ORIGINAL WINE")
-    # display_metrics(y_test, y_pred_optimized, "GWO-OPTIMIZED WINE")
-    #
-    # wine_model_cv(X_wine, y_wine, n_splits=5)
-    # train_and_evaluate_genfis(X_wine, y_wine, n_splits=5)
+    display_metrics(y_test, y_pred_optimized, "GWO-OPTIMIZED WINE")
+
+    wine_model_cv(X_wine, y_wine, n_splits=5)
+    train_and_evaluate_genfis(X_wine, y_wine, n_splits=5)
 
 
 
