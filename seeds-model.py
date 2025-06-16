@@ -103,7 +103,7 @@ def predict_for_seeds(fuzzy_system, data):
             fuzzy_system.input['asymmetry'] = row[5]
             fuzzy_system.input['groove'] = row[6]
             fuzzy_system.compute()
-            predicted_value = fuzzy_system.output.get('seeds_class')
+            predicted_value = fuzzy_system.output.get('seed_class')
 
             if predicted_value is None:
                 predictions.append(DEFAULT_PREDICTION)
