@@ -8,7 +8,8 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
-
+import matplotlib.pyplot as plt
+plt.legend(loc='best')
 
 
 def remove_outliers_turkey(X, y):
@@ -28,26 +29,23 @@ def create_iris_fuzzy_system(params=None):
     petal_length = ctrl.Antecedent(np.arange(1.0, 7.0, 0.1), 'petal_length')
     petal_width = ctrl.Antecedent(np.arange(0.1, 2.6, 0.1), 'petal_width')
 
-    species = ctrl.Consequent(np.arange(0, 3, 1), 'species')
+    iris_class = ctrl.Consequent(np.arange(1, 4, 0.1), 'iris_class', defuzzify_method='centroid')
 
     if params is not None:
-        p_sl = np.sort(params[:9])
-        p_sw = np.sort(params[9:18])
-        p_pl = np.sort(params[18:27])
-        p_pw = np.sort(params[27:36])
 
-        sepal_length['low'] = fuzz.trimf(sepal_length.universe, [p_sl[0], p_sl[1], p_sl[2]])
-        sepal_length['medium'] = fuzz.trimf(sepal_length.universe, [p_sl[3], p_sl[4], p_sl[5]])
-        sepal_length['high'] = fuzz.trimf(sepal_length.universe, [p_sl[6], p_sl[7], p_sl[8]])
-        sepal_width['low'] = fuzz.trimf(sepal_width.universe, [p_sw[0], p_sw[1], p_sw[2]])
-        sepal_width['medium'] = fuzz.trimf(sepal_width.universe, [p_sw[3], p_sw[4], p_sw[5]])
-        sepal_width['high'] = fuzz.trimf(sepal_width.universe, [p_sw[6], p_sw[7], p_sw[8]])
-        petal_length['low'] = fuzz.trimf(petal_length.universe, [p_pl[0], p_pl[1], p_pl[2]])
-        petal_length['medium'] = fuzz.trimf(petal_length.universe, [p_pl[3], p_pl[4], p_pl[5]])
-        petal_length['high'] = fuzz.trimf(petal_length.universe, [p_pl[6], p_pl[7], p_pl[8]])
-        petal_width['low'] = fuzz.trimf(petal_width.universe, [p_pw[0], p_pw[1], p_pw[2]])
-        petal_width['medium'] = fuzz.trimf(petal_width.universe, [p_pw[3], p_pw[4], p_pw[5]])
-        petal_width['high'] = fuzz.trimf(petal_width.universe, [p_pw[6], p_pw[7], p_pw[8]])
+        sepal_length['low'] = fuzz.trimf(sepal_length.universe, [4.3, 5.1, 5.8])
+        sepal_length['medium'] = fuzz.trimf(sepal_length.universe, [5.4, 6.1, 6.9])
+        sepal_length['high'] = fuzz.trimf(sepal_length.universe, [6.4, 7.1, 7.9])
+        sepal_width['low'] = fuzz.trimf(sepal_width.universe, [2.0, 2.8, 3.4])
+        sepal_width['medium'] = fuzz.trimf(sepal_width.universe, [2.9, 3.5, 4.1])
+        sepal_width['high'] = fuzz.trimf(sepal_width.universe, [3.6, 4.0, 4.4])
+        petal_length['low'] = fuzz.trimf(petal_length.universe, [1.0, 1.5, 1.9])
+        petal_length['medium'] = fuzz.trimf(petal_length.universe, [3.0, 4.2, 5.1])
+        petal_length['high'] = fuzz.trimf(petal_length.universe, [4.5, 5.7, 6.9])
+        petal_width['low'] = fuzz.trapmf(petal_width.universe, [0.1, 0.2, 0.4, 0.6])
+        petal_width['medium'] = fuzz.trapmf(petal_width.universe, [1.0, 1.2, 1.5, 1.8])
+        petal_width['high'] = fuzz.trapmf(petal_width.universe, [1.5, 1.8, 2.4, 2.5])
+
     else:
         sepal_length['low'] = fuzz.trimf(sepal_length.universe, [4.3, 5.1, 5.8])
         sepal_length['medium'] = fuzz.trimf(sepal_length.universe, [5.4, 6.1, 6.9])
@@ -58,36 +56,41 @@ def create_iris_fuzzy_system(params=None):
         petal_length['low'] = fuzz.trimf(petal_length.universe, [1.0, 1.5, 1.9])
         petal_length['medium'] = fuzz.trimf(petal_length.universe, [3.0, 4.2, 5.1])
         petal_length['high'] = fuzz.trimf(petal_length.universe, [4.5, 5.7, 6.9])
-        petal_width['low'] = fuzz.trimf(petal_width.universe, [0.1, 0.3, 0.6])
-        petal_width['medium'] = fuzz.trimf(petal_width.universe, [1.0, 1.4, 1.8])
-        petal_width['high'] = fuzz.trimf(petal_width.universe, [1.5, 2.0, 2.5])
+        petal_width['low'] = fuzz.trapmf(petal_width.universe, [0.1, 0.2, 0.4, 0.6])
+        petal_width['medium'] = fuzz.trapmf(petal_width.universe, [1.0, 1.2, 1.5, 1.8])
+        petal_width['high'] = fuzz.trapmf(petal_width.universe, [1.5, 1.8, 2.4, 2.5])
 
-    species['setosa'] = fuzz.trimf(species.universe, [0, 0, 1])
-    species['versicolor'] = fuzz.trimf(species.universe, [0, 1, 2])
-    species['virginica'] = fuzz.trimf(species.universe, [1, 2, 2])
+    iris_class['setosa'] = fuzz.trimf(iris_class.universe, [1, 1, 2])
+    iris_class['versicolor'] = fuzz.trimf(iris_class.universe, [2, 2.2, 2.5])
+    iris_class['virginica'] = fuzz.trimf(iris_class.universe, [2, 3, 3])
 
-    rule1 = ctrl.Rule(petal_length['low'] | petal_width['low'], species['setosa'])
-    rule2 = ctrl.Rule(petal_length['medium'] & petal_width['medium'] & sepal_length['medium'], species['versicolor'])
-    rule3 = ctrl.Rule(petal_length['high'] & petal_width['high'] & sepal_length['high'], species['virginica'])
+    rule1 = ctrl.Rule(petal_width['low'], iris_class['setosa'])
+    rule2 = ctrl.Rule(petal_length['low'], iris_class['setosa'])
+    rule3 = ctrl.Rule(petal_width['medium'] & petal_length['medium'], iris_class['versicolor'])
+    rule4 = ctrl.Rule(petal_width['high'], iris_class['virginica'])
+    rule5 = ctrl.Rule(petal_length['high'], iris_class['virginica'])
 
-    iris_ctrl = ctrl.ControlSystem([rule1, rule2, rule3])
-    return iris_ctrl
+    petal_length.view()
+    petal_width.view()
+    iris_class.view()
+
+    iris_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5])
+    return ctrl.ControlSystemSimulation(iris_ctrl)
 
 def predict_for_iris(fuzzy_system, X_data):
     predictions = []
     for sample in X_data:
         try:
-            sim = ctrl.ControlSystemSimulation(fuzzy_system)
-            sim.input['sepal_length'] = sample[0]
-            sim.input['sepal_width'] = sample[1]
-            sim.input['petal_length'] = sample[2]
-            sim.input['petal_width'] = sample[3]
-            sim.compute()
-            predicted_species_val = round(iris_sim.output['species'])
-            predicted_species_name = "Iris-" + species_names[predicted_species_val]
-            print(predicted_class)
+            fuzzy_system.input['sepal_length'] = sample[0]
+            fuzzy_system.input['sepal_width'] = sample[1]
+            fuzzy_system.input['petal_length'] = sample[2]
+            fuzzy_system.input['petal_width'] = sample[3]
+            fuzzy_system.compute()
+            predicted_class = np.round(fuzzy_system.output['iris_class'])
+            predictions.append(predicted_class)
         except Exception as e:
             predictions.append(1)
+    print("\n$$$", predictions)
     return np.array(predictions)
 
 def create_wine_fuzzy_system(params=None):
@@ -283,61 +286,53 @@ def iris_model(X_iris, y_iris):
     print(f"Training: {X_train.shape[0]}")
     print(f"Test: {X_test.shape[0]}")
 
-    def objective_function_iris(solution):
-        temp_fuzzy_system = create_iris_fuzzy_system(params=solution)
-        y_pred = predict_for_iris(temp_fuzzy_system, X_train)
-        return 1.0 - accuracy_score(y_train, y_pred)
-
-    problem_dict = {
-        "obj_func": objective_function_iris,
-        "bounds": FloatVar(
-            lb=[
-                # Sepal Length bounds (9 parameters)
-                4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3,
-                # Sepal Width bounds (9 parameters)
-                2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-                # Petal Length bounds (9 parameters)
-                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                # Petal Width bounds (9 parameters)
-                0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-            ],
-            ub=[
-                # Sepal Length bounds (9 parameters)
-                7.9, 7.9, 7.9, 7.9, 7.9, 7.9, 7.9, 7.9, 7.9,
-                # Sepal Width bounds (9 parameters)
-                4.4, 4.4, 4.4, 4.4, 4.4, 4.4, 4.4, 4.4, 4.4,
-                # Petal Length bounds (9 parameters)
-                6.9, 6.9, 6.9, 6.9, 6.9, 6.9, 6.9, 6.9, 6.9,
-                # Petal Width bounds (9 parameters)
-                2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5,
-            ]
-        ),
-        "minmax": "min",
-        "log_to": None,
-        "save_population": False,
-    }
-    optimizer = OriginalGWO(epoch=50, pop_size=30)
-    result = optimizer.solve(problem_dict)
-
-    best_solution = result.solution
-    best_fitness = result.target.fitness
-
-    print(f"Zakończono dla IRIS.")
-    print(f"Best Fitness (Error Rate on Train Set): {best_fitness:.4f}")
-    print(f"Best Parameters Found: \n{best_solution}\n")
+    # def objective_function_iris(solution):
+    #     temp_fuzzy_system = create_iris_fuzzy_system(params=solution)
+    #     y_pred = predict_for_iris(temp_fuzzy_system, X_train)
+    #     return 1.0 - accuracy_score(y_train, y_pred)
+    #
+    # problem_dict = {
+    #     "obj_func": objective_function_iris,
+    #     "bounds": FloatVar(
+    #         lb=[
+    #             4.0, 4.0, 4.5, 5.0, 4.8, 5.5, 6.2, 5.8, 6.3, 7.0, 7.5,  # Sepal Length
+    #             2.0, 2.0, 2.5, 2.8, 2.5, 3.0, 3.5, 3.3, 3.6, 4.5, 4.5,  # Sepal Width
+    #             1.0, 1.0, 1.5, 2.0, 2.0, 4.0, 4.8, 4.5, 5.0, 6.5, 7.0,  # Petal Length
+    #             0.0, 0.0, 0.2, 0.5, 0.4, 1.0, 1.6, 1.4, 1.8, 2.4, 2.4  # Petal Width
+    #         ],
+    #         ub=[
+    #             5.0, 5.0, 5.5, 6.0, 5.5, 6.2, 7.0, 6.5, 7.5, 8.5, 8.5,  # Sepal Length
+    #             2.8, 2.8, 3.0, 3.3, 3.2, 3.8, 4.0, 4.0, 4.5, 5.0, 5.0,  # Sepal Width
+    #             2.0, 2.0, 2.5, 3.0, 4.5, 5.0, 5.5, 5.5, 6.5, 7.5, 7.5,  # Petal Length
+    #             0.3, 0.3, 0.6, 0.9, 1.2, 1.8, 2.0, 2.0, 2.5, 2.6, 2.6  # Petal Width
+    #         ]
+    #     ),
+    #     "minmax": "min",
+    #     "log_to": None,
+    #     "save_population": False,
+    # }
+    # optimizer = OriginalGWO(epoch=50, pop_size=30)
+    # result = optimizer.solve(problem_dict)
+    #
+    # best_solution = result.solution
+    # best_fitness = result.target.fitness
+    #
+    # print(f"Zakończono dla IRIS.")
+    # print(f"Best Fitness (Error Rate on Train Set): {best_fitness:.4f}")
+    # print(f"Best Parameters Found: \n{best_solution}\n")
 
     original_fuzzy_system = create_iris_fuzzy_system(params=None)
     y_pred_original = predict_for_iris(original_fuzzy_system, X_test)
     accuracy_original = accuracy_score(y_test, y_pred_original)
     print(f"Accuracy ORIGINAL Fuzzy System: {accuracy_original:.4f}")
 
-    optimized_fuzzy_system = create_iris_fuzzy_system(params=best_solution)
-    y_pred_optimized = predict_for_iris(optimized_fuzzy_system, X_test)
-    accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
-    print(f"Accuracy GWO-OPTIMIZED Fuzzy System: {accuracy_optimized:.4f} \n")
+    # optimized_fuzzy_system = create_iris_fuzzy_system(params=best_solution)
+    # y_pred_optimized = predict_for_iris(optimized_fuzzy_system, X_test)
+    # accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
+    # print(f"Accuracy GWO-OPTIMIZED Fuzzy System: {accuracy_optimized:.4f} \n")
 
     display_metrics(y_test, y_pred_original, "Accuracy ORIGINAL IRIS")
-    display_metrics(y_test, y_pred_optimized, "Accuracy GWO-OPTIMIZED IRIS")
+    # display_metrics(y_test, y_pred_optimized, "Accuracy GWO-OPTIMIZED IRIS")
 
 def wine_model(X_wine, y_wine):
     # Trenowanie i testowanie WINE
@@ -624,7 +619,7 @@ def main():
 
     # Pre-processing IRIS
     iris_col_names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class']
-    iris_data = pd.read_csv(datasets['iris'][0], header=datasets['iris'][1], names=iris_col_names)
+    iris_data = pd.read_csv(datasets['iris'][0], header=None, names=iris_col_names)
     X_iris = iris_data.iloc[:, :-1].values
     y_iris_categorical = iris_data.iloc[:, -1].values
     label_encoder_iris = LabelEncoder()
@@ -644,7 +639,7 @@ def main():
     wine_col_names = ['class', 'Alcohol', 'Malic_acid', 'Ash', 'Alcalinity_of_ash', 'Magnesium', 'Total_phenols',
                       'Flavanoids', 'Nonflavanoid_phenols', 'Proanthocyanins', 'Color_intensity', 'Hue',
                       'OD280/OD315_of_diluted_wines', 'Proline']
-    wine_data = pd.read_csv(datasets['wine'][0], header=datasets['wine'][1], names=wine_col_names)
+    wine_data = pd.read_csv(datasets['wine'][0], header=None, names=wine_col_names)
     X_wine = wine_data.iloc[:, 1:].values
     y_wine = wine_data.iloc[:, 0].values
 
