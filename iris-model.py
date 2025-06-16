@@ -6,17 +6,9 @@ from sklearn.preprocessing import LabelEncoder
 from skfuzzy import control as ctrl
 import skfuzzy as fuzz
 
+from helper import remove_outliers_turkey, display_metrics
 
-def remove_outliers_turkey(X, y):
-    Q1 = np.percentile(X, 25, axis=0)
-    Q3 = np.percentile(X, 75, axis=0)
-    IQR = Q3 - Q1
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
 
-    mask = (X >= lower_bound) & (X <= upper_bound)
-    non_outlier_mask = np.all(mask, axis=1)
-    return X[non_outlier_mask], y[non_outlier_mask]
 
 def create_iris_fuzzy_system(params=None):
     sepal_length = ctrl.Antecedent(np.arange(4.3, 8.0, 0.1), 'sepal_length')
@@ -24,7 +16,7 @@ def create_iris_fuzzy_system(params=None):
     petal_length = ctrl.Antecedent(np.arange(1.0, 7.0, 0.1), 'petal_length')
     petal_width = ctrl.Antecedent(np.arange(0.1, 2.6, 0.1), 'petal_width')
 
-    iris_class = ctrl.Consequent(np.arange(1, 4, 0.1), 'iris_class', defuzzify_method='centroid')
+    iris_class = ctrl.Consequent(np.arange(1, 4, 1), 'iris_class')
 
     if params is not None:
         print("not none")
@@ -35,32 +27,51 @@ def create_iris_fuzzy_system(params=None):
         sepal_width['low'] = fuzz.trimf(sepal_width.universe, [2.0, 2.8, 3.4])
         sepal_width['medium'] = fuzz.trimf(sepal_width.universe, [2.9, 3.5, 4.1])
         sepal_width['high'] = fuzz.trimf(sepal_width.universe, [3.6, 4.0, 4.4])
-        petal_length['low'] = fuzz.trapmf(petal_length.universe, [1.0, 1.0, 1.5, 1.9])
-        petal_length['medium'] = fuzz.trapmf(petal_length.universe, [3.0, 4.0, 4.4, 5.1])
-        petal_length['high'] = fuzz.trapmf(petal_length.universe, [4.5, 5.1, 6.9, 6.9])
+        petal_length['low'] = fuzz.trimf(petal_length.universe, [1.0, 1.5, 1.9])
+        petal_length['medium'] = fuzz.trimf(petal_length.universe, [3.0, 4.2, 5.1])
+        petal_length['high'] = fuzz.trimf(petal_length.universe, [4.5, 5.7, 6.9])
         petal_width['low'] = fuzz.trapmf(petal_width.universe, [0.1, 0.2, 0.4, 0.6])
         petal_width['medium'] = fuzz.trapmf(petal_width.universe, [1.0, 1.2, 1.5, 1.8])
         petal_width['high'] = fuzz.trapmf(petal_width.universe, [1.5, 1.8, 2.4, 2.5])
 
-    iris_class['setosa'] = fuzz.trimf(iris_class.universe, [0, 0, 1])
-    iris_class['versicolor'] = fuzz.trimf(iris_class.universe, [0, 1, 2])
-    iris_class['virginica'] = fuzz.trimf(iris_class.universe, [1, 2, 2])
+    iris_class.defuzzify_method = 'centroid'
+    iris_class['setosa'] = fuzz.trimf(iris_class.universe, [1, 1, 2])
+    iris_class['versicolor'] = fuzz.trimf(iris_class.universe, [1, 2, 3])
+    iris_class['virginica'] = fuzz.trimf(iris_class.universe, [2, 3, 3])
 
-    rule1 = ctrl.Rule(petal_length['low'] | petal_width['low'], species['setosa'])
-    rule2 = ctrl.Rule(petal_length['medium'] & petal_width['medium'], species['versicolor'])
-    rule3 = ctrl.Rule(petal_length['high'] & petal_width['high'], species['virginica'])
+    rule1 = ctrl.Rule(petal_width['low'], iris_class['setosa'])
+    rule2 = ctrl.Rule(petal_width['medium'], iris_class['versicolor'])
+    rule3 = ctrl.Rule(petal_width['high'], iris_class['virginica'])
 
-    petal_length.view()
     petal_width.view()
     iris_class.view()
 
     iris_ctrl = ctrl.ControlSystem([rule1, rule2, rule3])
     return ctrl.ControlSystemSimulation(iris_ctrl)
 
+def predict_for_iris(fuzzy_system, data):
+    predictions = []
+    for row in data:
+        try:
+            fuzzy_system.input['sepal_length'] = row[0]
+            fuzzy_system.input['sepal_width'] = row[1]
+            fuzzy_system.input['petal_length'] = row[2]
+            fuzzy_system.input['petal_width'] = row[3]
+            fuzzy_system.compute()
+            predicted_class = fuzzy_system.output['iris_class']
+
+            predictions.append(round(predicted_class))
+        except Exception as e:
+            print(f'Error: {e}')
+            predictions.append(1)
+    print("\n$$$", predictions)
+    return np.array(predictions)
+
 def iris_model():
     # Pre-processing IRIS
     iris_col_names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class']
-    iris_data = pd.read_csv('data/iris.data', header=None, names=iris_col_names)
+    iris_data = pd.read_csv('data/iris.data', header=None, engine='python', names=iris_col_names)
+    iris_data.dropna(inplace=True)
     X_iris = iris_data.iloc[:, :-1].values
     y_iris_categorical = iris_data.iloc[:, -1].values
     label_encoder_iris = LabelEncoder()
@@ -86,6 +97,8 @@ def iris_model():
     y_pred_original = predict_for_iris(original_fuzzy_system, X_test)
     accuracy_original = accuracy_score(y_test, y_pred_original)
     print(f"Accuracy ORIGINAL Fuzzy System: {accuracy_original:.4f}")
+
+    display_metrics(y_test, y_pred_original, "Accuracy ORIGINAL IRIS")
 
 
 

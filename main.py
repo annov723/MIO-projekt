@@ -9,19 +9,10 @@ from sklearn.preprocessing import LabelEncoder
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import matplotlib.pyplot as plt
+from helper import remove_outliers_turkey, display_metrics
 plt.legend(loc='best')
 
 
-def remove_outliers_turkey(X, y):
-    Q1 = np.percentile(X, 25, axis=0)
-    Q3 = np.percentile(X, 75, axis=0)
-    IQR = Q3 - Q1
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-
-    mask = (X >= lower_bound) & (X <= upper_bound)
-    non_outlier_mask = np.all(mask, axis=1)
-    return X[non_outlier_mask], y[non_outlier_mask]
 
 def create_iris_fuzzy_system(params=None):
     sepal_length = ctrl.Antecedent(np.arange(4.3, 8.0, 0.1), 'sepal_length')
@@ -273,6 +264,7 @@ def predict_for_seeds(fuzzy_system, data):
 
             predictions.append(round(prediction))
         except Exception as e:
+            print(f'Error: {e}')
             predictions.append(1)
     return np.array(predictions)
 
@@ -489,25 +481,6 @@ def seeds_model(X_seeds, y_seeds):
 
 
 
-def display_metrics(y_true, y_pred, title):
-    print(f"--- {title} ---")
-
-    cm = confusion_matrix(y_true, y_pred)
-    print(f"Confusion matrix\n{cm}")
-    accuracy = accuracy_score(y_true, y_pred)
-
-    precision = precision_score(y_true, y_pred, average='weighted', zero_division=0)
-    recall = recall_score(y_true, y_pred, average='weighted', zero_division=0)
-    f1 = f1_score(y_true, y_pred, average='weighted', zero_division=0)
-
-    print(f"\nDokładność (Accuracy): {accuracy:.4f}")
-    print(f"Precyzja (Precision): {precision:.4f}")
-    print(f"Czułość (Recall): {recall:.4f}")
-    print(f"Miara F1 (F1-Score): {f1:.4f}\n")
-
-    print("Raport klasyfikacji:")
-    print(classification_report(y_true, y_pred, zero_division=0, target_names=['Klasa 1', 'Klasa 2', 'Klasa 3']))
-
 def seeds_model_cv(X_seeds, y_seeds, n_splits=5):
     kfold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
     original_scores = []
@@ -640,8 +613,9 @@ def main():
                       'Flavanoids', 'Nonflavanoid_phenols', 'Proanthocyanins', 'Color_intensity', 'Hue',
                       'OD280/OD315_of_diluted_wines', 'Proline']
     wine_data = pd.read_csv(datasets['wine'][0], header=None, names=wine_col_names)
+    wine_data.dropna(inplace=True)
     X_wine = wine_data.iloc[:, 1:].values
-    y_wine = wine_data.iloc[:, 0].values
+    y_wine = wine_data.iloc[:, 0].values.astype(int)
 
     X_wine_no_outliers, y_wine_no_outliers = remove_outliers_turkey(X_wine, y_wine)
 
