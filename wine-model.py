@@ -24,21 +24,21 @@ def create_wine_fuzzy_system(params=None):
         p_flav = params[21:33]
         p_pro = params[33:45]
 
-        alcohol['low'] = fuzz.trimf(alcohol.universe, [p_alc[0], p_alc[1], p_alc[2]])
-        alcohol['medium'] = fuzz.trimf(alcohol.universe, [p_alc[3], p_alc[4], p_alc[5]])
-        alcohol['high'] = fuzz.trimf(alcohol.universe, [p_alc[6], p_alc[7], p_alc[8]])
-        alcohol['very_high'] = fuzz.trimf(alcohol.universe, [p_alc[9], p_alc[10], p_alc[11]])
-        malic_acid['low'] = fuzz.trimf(malic_acid.universe, [p_malic[0], p_malic[1], p_malic[2]])
-        malic_acid['medium'] = fuzz.trimf(malic_acid.universe, [p_malic[3], p_malic[4], p_malic[5]])
-        malic_acid['high'] = fuzz.trimf(malic_acid.universe, [p_malic[6], p_malic[7], p_malic[8]])
-        flavanoids['low'] = fuzz.trimf(flavanoids.universe, [p_flav[0], p_flav[1], p_flav[2]])
-        flavanoids['medium'] = fuzz.trimf(flavanoids.universe, [p_flav[3], p_flav[4], p_flav[5]])
-        flavanoids['high'] = fuzz.trimf(flavanoids.universe, [p_flav[6], p_flav[7], p_flav[8]])
-        flavanoids['very_high'] = fuzz.trimf(flavanoids.universe, [p_flav[9], p_flav[10], p_flav[11]])
-        proline['low'] = fuzz.trimf(proline.universe, [p_pro[0], p_pro[1], p_pro[2]])
-        proline['medium'] = fuzz.trimf(proline.universe, [p_pro[3], p_pro[4], p_pro[5]])
-        proline['high'] = fuzz.trimf(proline.universe, [p_pro[6], p_pro[7], p_pro[8]])
-        proline['very_high'] = fuzz.trimf(proline.universe, [p_pro[9], p_pro[10], p_pro[11]])
+        alcohol['low'] = fuzz.trimf(alcohol.universe, sorted([p_alc[0], p_alc[1], p_alc[2]]))
+        alcohol['medium'] = fuzz.trimf(alcohol.universe, sorted([p_alc[3], p_alc[4], p_alc[5]]))
+        alcohol['high'] = fuzz.trimf(alcohol.universe, sorted([p_alc[6], p_alc[7], p_alc[8]]))
+        alcohol['very_high'] = fuzz.trimf(alcohol.universe, sorted([p_alc[9], p_alc[10], p_alc[11]]))
+        malic_acid['low'] = fuzz.trimf(malic_acid.universe, sorted([p_malic[0], p_malic[1], p_malic[2]]))
+        malic_acid['medium'] = fuzz.trimf(malic_acid.universe, sorted([p_malic[3], p_malic[4], p_malic[5]]))
+        malic_acid['high'] = fuzz.trimf(malic_acid.universe, sorted([p_malic[6], p_malic[7], p_malic[8]]))
+        flavanoids['low'] = fuzz.trimf(flavanoids.universe, sorted([p_flav[0], p_flav[1], p_flav[2]]))
+        flavanoids['medium'] = fuzz.trimf(flavanoids.universe, sorted([p_flav[3], p_flav[4], p_flav[5]]))
+        flavanoids['high'] = fuzz.trimf(flavanoids.universe, sorted([p_flav[6], p_flav[7], p_flav[8]]))
+        flavanoids['very_high'] = fuzz.trimf(flavanoids.universe, sorted([p_flav[9], p_flav[10], p_flav[11]]))
+        proline['low'] = fuzz.trimf(proline.universe, sorted([p_pro[0], p_pro[1], p_pro[2]]))
+        proline['medium'] = fuzz.trimf(proline.universe, sorted([p_pro[3], p_pro[4], p_pro[5]]))
+        proline['high'] = fuzz.trimf(proline.universe, sorted([p_pro[6], p_pro[7], p_pro[8]]))
+        proline['very_high'] = fuzz.trimf(proline.universe, sorted([p_pro[9], p_pro[10], p_pro[11]]))
 
     else:
         alcohol['low'] = fuzz.trimf(alcohol.universe, [11.0, 11.7, 12.5])
@@ -85,11 +85,6 @@ def create_wine_fuzzy_system(params=None):
         ctrl.Rule(flavanoids['low'], wine_class['class_3']),
         ctrl.Rule(flavanoids['medium'], wine_class['class_2'])
     ]
-
-    alcohol.view()
-    malic_acid.view()
-    flavanoids.view()
-    proline.view()
 
     wine_ctrl = ctrl.ControlSystem(rules)
     return ctrl.ControlSystemSimulation(wine_ctrl)
